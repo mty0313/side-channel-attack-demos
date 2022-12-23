@@ -36,7 +36,7 @@ public class EqualFunction {
       return false;
     }
     for (int i = 0; i < a.length(); i++) {
-      Thread.sleep(100);
+      Thread.sleep(50);
       if (a.charAt(i) != b.charAt(i)) {
         return false;
       }

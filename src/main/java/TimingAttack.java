@@ -12,45 +12,50 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class TimingAttack {
-  public static final String ANSWER = "bird";
-  public static final int ANSWER_LENGTH = 4;
-  public static final int ROUND = 5;
+  // hippopotamus
+  public static final String ANSWER = "apple";
+  public static final int ANSWER_LENGTH = ANSWER.length();
+  public static final int ROUND = 4; // 算法内算分用的轮数
+  public static final int ATTEMPTS = 100000; // 程序自动尝试的次数
   public static final String[] CANDIDATES = new String[] {"a", "b", "c", "d", "e", "f", "g", "h",
       "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"};
 
   public static void attackDemo1() throws InterruptedException {
-    String[] attackString = new String[]{"a", "a", "a", "a"};
-    for (int pos = 0; pos < ANSWER_LENGTH - 1; pos++) {
+    String[] attackString = new String[ANSWER_LENGTH];
+    for (int i = 0; i < ANSWER_LENGTH; i++) {
+      attackString[i] = CANDIDATES[0];
+    }
+    for (int position = 0; position < ANSWER_LENGTH - 1; position++) {
       List<CharDuration> scores = new ArrayList<>();
       for (String candidate : CANDIDATES) {
-        attackString[pos] = candidate;
+        attackString[position] = candidate;
         long start = System.currentTimeMillis();
         EqualFunction.slowerInsecureEqual(ANSWER, buildStringFromArray(attackString));
         long duration = System.currentTimeMillis() - start;
         scores.add(new CharDuration(candidate, duration));
       }
       String mostLikelyCharAtPosition = mostLikelyChar(scores);
-      attackString[pos] = mostLikelyCharAtPosition;
-      System.out.println("mostLikelyChar(scores) at position " + pos + " = " + mostLikelyChar(scores));
+      attackString[position] = mostLikelyCharAtPosition;
+      System.out.println("最后可能在位置 " + position + " 的字符：" + mostLikelyChar(scores));
     }
     for (String candidate : CANDIDATES) {
       int lastPos = ANSWER_LENGTH - 1;
       attackString[lastPos] = candidate;
       if (EqualFunction.slowerInsecureEqual(ANSWER, buildStringFromArray(attackString))) {
         attackString[lastPos] = candidate;
-        System.out.println("mostLikelyChar(scores) at position " + lastPos + " = " + candidate);
+        System.out.println("最后一位 " + lastPos + " 的字符确认为：" + candidate);
         break;
       }
     }
-    System.out.println("ANSWER = " + buildStringFromArray(attackString));
+    System.out.println("结果为：" + buildStringFromArray(attackString));
   }
 
-  public static void attackDemo2() {
+  public static boolean attackDemo2(boolean debug) {
     String[] attackStringArray = new String[ANSWER_LENGTH];
     for (int i = 0; i < ANSWER_LENGTH; i++) {
       attackStringArray[i] = CANDIDATES[0];
     }
-    for (int pos = 0; pos < ANSWER_LENGTH; pos++) {
+    for (int position = 0; position < ANSWER_LENGTH - 1; position++) {
       Map<String, List<Integer>> roundScores = new HashMap<>();
       for (String charValue : CANDIDATES) {
         roundScores.put(charValue, new ArrayList<>());
@@ -58,7 +63,7 @@ public class TimingAttack {
       for (int r = 0; r < ROUND; r++) {
         List<CharDuration> durations = new ArrayList<>();
         for (String candidate : CANDIDATES) {
-          attackStringArray[pos] = candidate;
+          attackStringArray[position] = candidate;
           String attackString = buildStringFromArray(attackStringArray);
           long start = System.nanoTime();
           EqualFunction.insecureEqual(ANSWER, attackString);
@@ -84,10 +89,12 @@ public class TimingAttack {
           mostLikelyCharAtPos = entry.getKey();
         }
       }
-      attackStringArray[pos] = mostLikelyCharAtPos;
-      System.out.println("thisPosScore = " + thisPosScore);
-      System.out.println("mostLikelyCharAtPos" + pos + " = " + mostLikelyCharAtPos);
-      System.out.println("attackString = " + Arrays.toString(attackStringArray));
+      attackStringArray[position] = mostLikelyCharAtPos;
+      if (debug) {
+        System.out.println("位置 " + position + " 的得分情况：" + thisPosScore);
+        System.out.println("最有可能在位置 " + position + " 的字符：" + mostLikelyCharAtPos);
+        System.out.println("当前用于尝试的字符串更新为：" + Arrays.toString(attackStringArray));
+      }
     }
     // 最后一位
     for (String candidate : CANDIDATES) {
@@ -95,11 +102,14 @@ public class TimingAttack {
       attackStringArray[lastPos] = candidate;
       if (EqualFunction.insecureEqual(ANSWER, buildStringFromArray(attackStringArray))) {
         attackStringArray[lastPos] = candidate;
-        System.out.println("final check: last position: " + lastPos + " = " + candidate);
-        break;
+        if (debug) {
+          System.out.println("最后一位 " + lastPos + " 的字符确认为：" + candidate);
+        }
+        System.out.println("结果为：" + buildStringFromArray(attackStringArray));
+        return true;
       }
     }
-    System.out.println("answer is: " + buildStringFromArray(attackStringArray));
+    return false;
   }
 
   private static String buildStringFromArray(String[] array) {
@@ -154,9 +164,16 @@ public class TimingAttack {
   }
 
   public static void main(String[] args) throws InterruptedException {
-    int i = -1 >>> 2;
-    System.out.println(i);
-//    attackDemo2();
+//    attackDemo1();
+    int attemptsCount = 0;
+    while (attemptsCount++ < ATTEMPTS) {
+      System.out.println("第 " + attemptsCount + " 次尝试：");
+      if (attackDemo2(false)) {
+        System.out.println("调用equals方法 " + attemptsCount * ROUND + " 次后找到答案");
+        return;
+      }
+    }
+    System.out.println("调用equals方法 " + ATTEMPTS * ROUND + " 次后仍然没有找到答案");
   }
 
 }
